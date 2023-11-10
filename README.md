@@ -5,3 +5,5 @@ Photo of the Day.
 
 Requires an environment variable `NASA_KEY` holding your NASA
 API key.
+
+`make build` will create a binary for your arch
