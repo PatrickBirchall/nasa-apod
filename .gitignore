@@ -22,3 +22,6 @@ go.work
 
 # Program output
 *.jpg
+
+# Goland gubbins
+.idea
