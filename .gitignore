@@ -24,4 +24,4 @@ go.work
 *.jpg
 
 # Goland gubbins
-.idea
+.idea/*
