@@ -7,7 +7,7 @@
 *.dll
 *.so
 *.dylib
-nasa-apod
+bin/*
 
 # Test binary, built with `go test -c`
 *.test

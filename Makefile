@@ -1,11 +1,12 @@
 .DEFAULT_GOAL := build
 
- .PHONY:fmt vet build
- fmt:
+.PHONY: fmt vet build
+fmt:
 	go fmt ./...
 
- vet: fmt
+vet: fmt
 	go vet ./...
 
- build: vet
-	go build
+build: vet
+	mkdir -p bin
+	go build -o bin/nasa-apod
