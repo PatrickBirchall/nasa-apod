@@ -1,11 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"strings"
 )
 
@@ -22,46 +18,16 @@ type Response struct {
 
 func main() {
 
-	apiKey := os.Getenv("NASA_KEY")
-	url := "https://api.nasa.gov/planetary/apod?api_key=" + apiKey
-
-	resp, err := http.Get(url)
+	result, err := FetchAPOD()
 	if err != nil {
 		panic(err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(resp.Body)
 
-	body, err := io.ReadAll(resp.Body)
-
-	var result Response
-	if err := json.Unmarshal(body, &result); err != nil {
-		fmt.Println("Cannot unmarshall JSON")
-	}
-
-	fmt.Println("Downloading image from " + result.Hdurl)
+	fmt.Println("Downloading image: " + result.Title)
 
 	filename := result.Title + ".jpg"
 	noSpaceFilename := strings.ReplaceAll(filename, " ", "_")
 
-	file, err := os.Create(strings.ToLower(noSpaceFilename))
-	if err != nil {
-		panic(err)
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(file)
+	DownloadImage(result.Hdurl, "images", noSpaceFilename)
 
-	r, err := http.Get(result.Hdurl)
-	if err != nil {
-		fmt.Println("Cannot get image")
-	}
-	file.ReadFrom(r.Body)
 }
