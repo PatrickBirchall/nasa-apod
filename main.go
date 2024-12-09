@@ -17,10 +17,16 @@ type Response struct {
 }
 
 func main() {
-
-	result, err := FetchAPOD()
-	if err != nil {
+	downloader := RealImageDownloader{}
+	if err := run(downloader); err != nil {
 		panic(err)
+	}
+}
+
+func run(downloader ImageDownloader) error {
+	result, err := FetchAPOD("https://api.nasa.gov/planetary/apod")
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Downloading image: " + result.Title)
@@ -28,6 +34,5 @@ func main() {
 	filename := result.Title + ".jpg"
 	noSpaceFilename := strings.ReplaceAll(filename, " ", "_")
 
-	DownloadImage(result.Hdurl, "images", noSpaceFilename)
-
+	return downloader.DownloadImage(result.Hdurl, "images", noSpaceFilename)
 }

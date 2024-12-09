@@ -6,8 +6,14 @@ import (
 	"os"
 )
 
+type ImageDownloader interface {
+	DownloadImage(url, dir, filename string) error
+}
+
+type RealImageDownloader struct{}
+
 // DownloadImage downloads an image from a URL and saves it to a file in a subdirectory
-func DownloadImage(url string, subdirectory string, filename string) error {
+func (d RealImageDownloader) DownloadImage(url string, subdirectory string, filename string) error {
 	// Create the subdirectory if it doesn't exist
 	if _, err := os.Stat(subdirectory); os.IsNotExist(err) {
 		os.Mkdir(subdirectory, 0755)
