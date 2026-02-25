@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
@@ -16,20 +16,34 @@ func (d MockImageDownloader) DownloadImage(url, dir, filename string) error {
 func TestRun(t *testing.T) {
 	downloader := MockImageDownloader{}
 
-	os.Unsetenv("NASA_KEY")
-	err := run(downloader)
-	if err == nil || err.Error() != "NASA_KEY environment variable not set" {
-		t.Errorf("expected error 'NASA_KEY environment variable not set', got %v", err)
+	cfg := Config{
+		APIKey:    "",
+		BaseURL:   defaultBaseURL,
+		OutputDir: "images",
 	}
 
-	os.Setenv("NASA_KEY", "DEMO_KEY")
+	err := run(cfg, downloader)
+	if !errors.Is(err, ErrMissingNASAKey) {
+		t.Errorf("expected ErrMissingNASAKey, got %v", err)
+	}
+
+	cfg = Config{
+		APIKey:    "DEMO_KEY",
+		BaseURL:   defaultBaseURL,
+		OutputDir: "images",
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"date":"2023-10-01","explanation":"Test explanation","media_type":"image","service_version":"v1","title":"Test Title","url":"https://example.com/test.jpg"}`))
+		if _, err := w.Write([]byte(`{"date":"2023-10-01","explanation":"Test explanation","media_type":"image","service_version":"v1","title":"Test Title","url":"https://example.com/test.jpg"}`)); err != nil {
+			t.Fatalf("failed to write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 
-	err = run(downloader)
+	cfg.BaseURL = server.URL
+
+	err = run(cfg, downloader)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

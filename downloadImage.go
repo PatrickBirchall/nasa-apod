@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type ImageDownloader interface {
@@ -13,27 +15,36 @@ type ImageDownloader interface {
 type RealImageDownloader struct{}
 
 // DownloadImage downloads an image from a URL and saves it to a file in a subdirectory
-func (d RealImageDownloader) DownloadImage(url string, subdirectory string, filename string) error {
-	// Create the subdirectory if it doesn't exist
-	if _, err := os.Stat(subdirectory); os.IsNotExist(err) {
-		os.Mkdir(subdirectory, 0755)
+func (d RealImageDownloader) DownloadImage(url string, subdirectory string, filename string) (err error) {
+	if err := os.MkdirAll(subdirectory, 0o755); err != nil {
+		return fmt.Errorf("creating directory %q: %w", subdirectory, err)
 	}
 
-	// Prepend the subdirectory to the filename
-	path := subdirectory + "/" + filename
+	path := filepath.Join(subdirectory, filename)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("downloading image from %q: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing response body: %w", cerr)
+		}
+	}()
 
 	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("creating file %q: %w", path, err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing file %q: %w", path, cerr)
+		}
+	}()
 
-	_, err = io.Copy(file, resp.Body)
-	return err
+	if _, err = io.Copy(file, resp.Body); err != nil {
+		return fmt.Errorf("writing image to %q: %w", path, err)
+	}
+
+	return nil
 }
