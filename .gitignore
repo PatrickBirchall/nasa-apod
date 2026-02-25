@@ -29,3 +29,6 @@ go.work
 
 #Images
 images/*
+
+# Environment variables
+.env
