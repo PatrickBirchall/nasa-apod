@@ -1,15 +1,17 @@
-run:
-  timeout: 3m
-
+version: "2"
 linters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
   enable:
-    - govet
-    - staticcheck
     - gofmt
-    - gosimple
-    - ineffassign
-    - errcheck
-
-issues:
-  exclude-use-default: false
-
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

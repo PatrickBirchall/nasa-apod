@@ -18,7 +18,9 @@ func TestDownloadImage(t *testing.T) {
 	// Test case: Successful download
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test image content"))
+		if _, err := w.Write([]byte("test image content")); err != nil {
+			t.Fatalf("failed to write test response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -39,7 +41,11 @@ func TestDownloadImage(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error opening file, got %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil {
+			t.Fatalf("expected no error closing file, got %v", cerr)
+		}
+	}()
 
 	content, err := io.ReadAll(file)
 	if err != nil {
