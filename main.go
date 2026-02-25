@@ -1,7 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 )
 
@@ -16,15 +19,41 @@ type Response struct {
 	URL            string `json:"url"`
 }
 
+type Config struct {
+	APIKey    string
+	BaseURL   string
+	OutputDir string
+}
+
+const (
+	defaultBaseURL   = "https://api.nasa.gov/planetary/apod"
+	defaultOutputDir = "images"
+)
+
 func main() {
+	baseURL := flag.String("api-url", defaultBaseURL, "NASA APOD API base URL")
+	outDir := flag.String("out", defaultOutputDir, "output directory for downloaded images")
+	flag.Parse()
+
+	apiKey := os.Getenv("NASA_KEY")
+	if apiKey == "" {
+		log.Fatalf("nasa-apod: %v", ErrMissingNASAKey)
+	}
+
+	cfg := Config{
+		APIKey:    apiKey,
+		BaseURL:   *baseURL,
+		OutputDir: *outDir,
+	}
+
 	downloader := RealImageDownloader{}
-	if err := run(downloader); err != nil {
-		panic(err)
+	if err := run(cfg, downloader); err != nil {
+		log.Fatalf("nasa-apod: %v", err)
 	}
 }
 
-func run(downloader ImageDownloader) error {
-	result, err := FetchAPOD("https://api.nasa.gov/planetary/apod")
+func run(cfg Config, downloader ImageDownloader) error {
+	result, err := FetchAPOD(cfg)
 	if err != nil {
 		return err
 	}
@@ -34,5 +63,5 @@ func run(downloader ImageDownloader) error {
 	filename := result.Title + ".jpg"
 	noSpaceFilename := strings.ReplaceAll(filename, " ", "_")
 
-	return downloader.DownloadImage(result.Hdurl, "images", noSpaceFilename)
+	return downloader.DownloadImage(result.Hdurl, cfg.OutputDir, noSpaceFilename)
 }

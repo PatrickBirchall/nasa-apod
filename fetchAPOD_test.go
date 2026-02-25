@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 )
@@ -17,20 +17,30 @@ func MockResponse(statusCode int, body string) *http.Response {
 }
 
 func TestFetchAPOD(t *testing.T) {
-	os.Unsetenv("NASA_KEY")
-	_, err := FetchAPOD("https://api.nasa.gov/planetary/apod")
-	if err == nil || err.Error() != "NASA_KEY environment variable not set" {
-		t.Errorf("expected error 'NASA_KEY environment variable not set', got %v", err)
+	cfg := Config{
+		APIKey:    "",
+		BaseURL:   defaultBaseURL,
+		OutputDir: "images",
 	}
 
-	os.Setenv("NASA_KEY", "DEMO_KEY")
+	_, err := FetchAPOD(cfg)
+	if !errors.Is(err, ErrMissingNASAKey) {
+		t.Errorf("expected ErrMissingNASAKey, got %v", err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"date":"2023-10-01","explanation":"Test explanation","media_type":"image","service_version":"v1","title":"Test Title","url":"https://example.com/test.jpg"}`))
 	}))
 	defer server.Close()
 
-	resp, err := FetchAPOD(server.URL)
+	cfg = Config{
+		APIKey:    "DEMO_KEY",
+		BaseURL:   server.URL,
+		OutputDir: "images",
+	}
+
+	resp, err := FetchAPOD(cfg)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}

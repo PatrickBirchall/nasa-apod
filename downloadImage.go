@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 type ImageDownloader interface {
@@ -14,17 +16,15 @@ type RealImageDownloader struct{}
 
 // DownloadImage downloads an image from a URL and saves it to a file in a subdirectory
 func (d RealImageDownloader) DownloadImage(url string, subdirectory string, filename string) error {
-	// Create the subdirectory if it doesn't exist
-	if _, err := os.Stat(subdirectory); os.IsNotExist(err) {
-		os.Mkdir(subdirectory, 0755)
+	if err := os.MkdirAll(subdirectory, 0o755); err != nil {
+		return fmt.Errorf("creating directory %q: %w", subdirectory, err)
 	}
 
-	// Prepend the subdirectory to the filename
-	path := subdirectory + "/" + filename
+	path := filepath.Join(subdirectory, filename)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("downloading image from %q: %w", url, err)
 	}
 	defer resp.Body.Close()
 
@@ -34,6 +34,9 @@ func (d RealImageDownloader) DownloadImage(url string, subdirectory string, file
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, resp.Body)
-	return err
+	if _, err = io.Copy(file, resp.Body); err != nil {
+		return fmt.Errorf("writing image to %q: %w", path, err)
+	}
+
+	return nil
 }
